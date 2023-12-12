@@ -1,6 +1,7 @@
-package se.kellygashi.main;
+package se.kellygashi.main.interfaces;
 
 public interface Consumer {
-    void run();
-    void stopRunning();
+    public void run();
+
+    public void stopRunning();
 }

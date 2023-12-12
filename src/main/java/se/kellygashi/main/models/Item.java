@@ -1,4 +1,4 @@
-package se.kellygashi.main;
+package se.kellygashi.main.models;
 
 public class Item {
 
@@ -15,9 +15,5 @@ public class Item {
 
     public void setId(String id) {
         this.id = id.toLowerCase();
-    }
-
-    public String getId() {
-        return id;
     }
 }

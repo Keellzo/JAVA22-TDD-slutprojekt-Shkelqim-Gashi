@@ -1,106 +1,106 @@
-package se.kellygashi.test.consumer;
+package se.kellygashi.test.models;
 
-import org.junit.jupiter.api.*;
-import se.kellygashi.main.models.Buffer;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.jupiter.api.DisplayName;
+import se.kellygashi.test.helpers.BufferManager;
 import se.kellygashi.main.models.Item;
 
-import java.util.NoSuchElementException;
-import java.util.concurrent.*;
+import static org.junit.Assert.*;
 
-import static org.junit.jupiter.api.Assertions.*;
+import java.util.concurrent.*;
 
 public class BufferTest {
 
-    private Buffer buffer;
-    private Item item;
+    private BufferManager bufferManager;
 
-    @BeforeEach
-    void setUp() {
-        buffer = new Buffer();
-        item = new Item("TestItem");
+    @Before
+    public void setUp() {
+        bufferManager = new BufferManager();
+    }
+
+    private Item createItem(String id) {
+        return new Item(id);
     }
 
     @Test
-    @DisplayName("Add an item to the buffer")
-    void addItemToBuffer() throws InterruptedException {
-        assertTrue(buffer.add(item));
-        assertEquals(item, buffer.remove());
+    @DisplayName("Test Adding Item to Buffer")
+    public void testAddingItemToBuffer() {
+        Item item = createItem("item1");
+        assertTrue(bufferManager.add(item));
+        assertEquals(item, bufferManager.remove());
     }
 
     @Test
-    @DisplayName("Remove an item from the buffer")
-    void removeItemFromBuffer() throws InterruptedException {
-        buffer.add(item);
-        assertEquals(item, buffer.remove());
+    @DisplayName("Test Removing Item from Buffer")
+    public void testRemovingItemFromBuffer() {
+        Item item = createItem("item1");
+        bufferManager.add(item);
+        assertEquals(item, bufferManager.remove());
     }
 
     @Test
-    @DisplayName("Attempt to remove from empty buffer")
-    void removeFromEmptyBuffer() {
-        assertThrows(NoSuchElementException.class, buffer::tryRemove);
-    }
-
-
-    @Test
-    @DisplayName("Add null to buffer should throw NullPointerException")
-    void addNullToBuffer() {
-        assertThrows(NullPointerException.class, () -> buffer.add(null));
+    @DisplayName("Test Add Returns True")
+    public void testAddReturnsTrue() {
+        assertTrue(bufferManager.add(createItem("item1")));
     }
 
     @Test
-    @DisplayName("Test InterruptedException catch block")
-    void testInterruptedExceptionCatchBlock() throws InterruptedException {
-        ExecutorService service = Executors.newFixedThreadPool(2);
-        Future<?> future = service.submit(this::testRun);
-
-        Thread.sleep(100);
-        future.cancel(true);
-
-        service.shutdown();
-        assertTrue(service.awaitTermination(1, TimeUnit.SECONDS), "Test didn't terminate in time");
+    @DisplayName("Test Remove Returns Correct Item")
+    public void testRemoveReturnsCorrectItem() {
+        Item firstItem = createItem("item1");
+        Item secondItem = createItem("item2");
+        bufferManager.add(firstItem);
+        bufferManager.add(secondItem);
+        assertEquals(firstItem, bufferManager.remove());
     }
 
     @Test
-    @DisplayName("Items are removed in the order they were added")
-    void itemsRemovedInOrder() throws InterruptedException {
-        Buffer buffer = new Buffer();
-        Item item1 = new Item("Item1");
-        Item item2 = new Item("Item2");
-        Item item3 = new Item("Item3");
-
-        buffer.add(item1);
-        buffer.add(item2);
-        buffer.add(item3);
-
-        assertEquals(item1, buffer.remove(), "First item should be Item1");
-        assertEquals(item2, buffer.remove(), "Second item should be Item2");
-        assertEquals(item3, buffer.remove(), "Third item should be Item3");
+    @DisplayName("Test Multiple Adds and Removes")
+    public void testMultipleAddsAndRemoves() {
+        Item firstItem = createItem("item1");
+        Item secondItem = createItem("item2");
+        bufferManager.add(firstItem);
+        bufferManager.add(secondItem);
+        assertEquals(firstItem, bufferManager.remove());
+        assertEquals(secondItem, bufferManager.remove());
     }
-
-
 
     @Test
-    @DisplayName("Wait on empty buffer and then add an item")
-    void testWaitOnEmptyBufferAndAdd() throws InterruptedException, ExecutionException {
-        ExecutorService service = Executors.newSingleThreadExecutor();
-        Future<Item> future = service.submit(() -> buffer.remove());
-
-        Thread.sleep(500);
-
-        buffer.add(item);
-
-
-        Item removedItem = future.get();
-        assertEquals(item, removedItem);
-
-        service.shutdownNow();
+    @DisplayName("Test Remove After Add")
+    public void testRemoveAfterAdd() {
+        Item item = createItem("item1");
+        bufferManager.add(item);
+        assertEquals(item, bufferManager.remove());
     }
 
-    private void testRun() {
+    @Test
+    @DisplayName("Test Buffer Ordering")
+    public void testBufferOrdering() {
+        Item firstItem = createItem("item1");
+        Item secondItem = createItem("item2");
+        bufferManager.add(firstItem);
+        bufferManager.add(secondItem);
+        assertEquals(firstItem, bufferManager.remove());
+        assertEquals(secondItem, bufferManager.remove());
+    }
+
+    @Test(timeout = 1000)
+    @DisplayName("Test Remove Blocks When Buffer Is Empty")
+    public void testRemoveBlocksWhenBufferIsEmpty() {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Callable<Item> task = () -> bufferManager.remove();
+
+        Future<Item> future = executor.submit(task);
         try {
-            buffer.remove();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            future.get(500, TimeUnit.MILLISECONDS);
+            fail("Expected TimeoutException");
+        } catch (TimeoutException ex) {
+            // Expected, means the remove() is blocking as it should
+        } catch (InterruptedException | ExecutionException e) {
+            fail("Test interrupted or execution exception: " + e.getMessage());
+        } finally {
+            executor.shutdownNow();
         }
     }
 }

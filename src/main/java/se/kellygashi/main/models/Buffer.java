@@ -1,35 +1,28 @@
-package se.kellygashi.main;
+package se.kellygashi.main.models;
 
-import se.kellygashi.main.Item;
 import java.util.LinkedList;
-import java.util.NoSuchElementException;
 import java.util.Queue;
 
 public class Buffer {
 
-    protected Queue<Item> buffer = new LinkedList<>();
+    protected Queue<Item> buffer = new LinkedList<Item>();
 
     public synchronized boolean add(Item item) {
-        if (item == null) {
-            throw new NullPointerException("Cannot add null item to the buffer.");
-        }
-        boolean isAdded = buffer.add(item);
-        notifyAll();
-        return isAdded;
+        buffer.add(item);
+        System.out.println(buffer);
+        notify();
+        return true;
     }
 
-    public synchronized Item remove() throws InterruptedException {
-        while (buffer.isEmpty()) {
-            wait();
-        }
-        return buffer.remove();
-    }
-
-
-    public synchronized Item tryRemove() {
+    public synchronized Item remove() {
         if (buffer.isEmpty()) {
-            throw new NoSuchElementException("Buffer is empty.");
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
-        return buffer.remove();
+        Item item = buffer.remove();
+        return item;
     }
 }

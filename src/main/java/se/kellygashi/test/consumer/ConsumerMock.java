@@ -5,11 +5,11 @@ import se.kellygashi.main.models.Item;
 import se.kellygashi.test.helpers.BufferManager;
 
 
-public class ConsumerStub implements Consumer {
+public class ConsumerMock implements Consumer {
 
     private final BufferManager bufferMgr;
 
-    public ConsumerStub(BufferManager bufferMgr) {
+    public ConsumerMock(BufferManager bufferMgr) {
         this.bufferMgr = bufferMgr;
     }
 
