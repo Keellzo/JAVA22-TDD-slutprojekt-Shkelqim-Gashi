@@ -3,8 +3,10 @@ package se.kellygashi.test.models;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.jupiter.api.DisplayName;
+import se.kellygashi.test.consumer.ConsumerMock;
 import se.kellygashi.test.helpers.BufferManager;
 import se.kellygashi.main.models.Item;
+import se.kellygashi.test.producer.ProducerMock;
 
 import static org.junit.Assert.*;
 
@@ -13,36 +15,40 @@ import java.util.concurrent.*;
 public class BufferTest {
 
     private BufferManager bufferManager;
+    private ProducerMock producerMock;
+    private ConsumerMock consumerMock;
+
+    private Item createItem(String id) {
+        return new Item(id);
+    }
 
     @Before
     public void setUp() {
         bufferManager = new BufferManager();
-    }
-
-    private Item createItem(String id) {
-        return new Item(id);
+        producerMock = new ProducerMock(bufferManager);
+        consumerMock = new ConsumerMock(bufferManager);
     }
 
     @Test
     @DisplayName("Test Adding Item to Buffer")
     public void testAddingItemToBuffer() {
         Item item = createItem("item1");
-        assertTrue(bufferManager.add(item));
-        assertEquals(item, bufferManager.remove());
+        assertTrue(producerMock.addItem(item));
+        assertEquals(item, consumerMock.consumeItem());
     }
 
     @Test
     @DisplayName("Test Removing Item from Buffer")
     public void testRemovingItemFromBuffer() {
         Item item = createItem("item1");
-        bufferManager.add(item);
-        assertEquals(item, bufferManager.remove());
+        producerMock.addItem(item);
+        assertEquals(item, consumerMock.consumeItem());
     }
 
     @Test
     @DisplayName("Test Add Returns True")
     public void testAddReturnsTrue() {
-        assertTrue(bufferManager.add(createItem("item1")));
+        assertTrue(producerMock.addItem(createItem("item1")));
     }
 
     @Test
@@ -50,9 +56,9 @@ public class BufferTest {
     public void testRemoveReturnsCorrectItem() {
         Item firstItem = createItem("item1");
         Item secondItem = createItem("item2");
-        bufferManager.add(firstItem);
-        bufferManager.add(secondItem);
-        assertEquals(firstItem, bufferManager.remove());
+        producerMock.addItem(firstItem);
+        producerMock.addItem(secondItem);
+        assertEquals(firstItem, consumerMock.consumeItem());
     }
 
     @Test
@@ -60,18 +66,18 @@ public class BufferTest {
     public void testMultipleAddsAndRemoves() {
         Item firstItem = createItem("item1");
         Item secondItem = createItem("item2");
-        bufferManager.add(firstItem);
-        bufferManager.add(secondItem);
-        assertEquals(firstItem, bufferManager.remove());
-        assertEquals(secondItem, bufferManager.remove());
+        producerMock.addItem(firstItem);
+        producerMock.addItem(secondItem);
+        assertEquals(firstItem, consumerMock.consumeItem());
+        assertEquals(secondItem, consumerMock.consumeItem());
     }
 
     @Test
     @DisplayName("Test Remove After Add")
     public void testRemoveAfterAdd() {
         Item item = createItem("item1");
-        bufferManager.add(item);
-        assertEquals(item, bufferManager.remove());
+        producerMock.addItem(item);
+        assertEquals(item, consumerMock.consumeItem());
     }
 
     @Test
@@ -79,17 +85,17 @@ public class BufferTest {
     public void testBufferOrdering() {
         Item firstItem = createItem("item1");
         Item secondItem = createItem("item2");
-        bufferManager.add(firstItem);
-        bufferManager.add(secondItem);
-        assertEquals(firstItem, bufferManager.remove());
-        assertEquals(secondItem, bufferManager.remove());
+        producerMock.addItem(firstItem);
+        producerMock.addItem(secondItem);
+        assertEquals(firstItem, consumerMock.consumeItem());
+        assertEquals(secondItem, consumerMock.consumeItem());
     }
 
     @Test(timeout = 1000)
     @DisplayName("Test Remove Blocks When Buffer Is Empty")
     public void testRemoveBlocksWhenBufferIsEmpty() {
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        Callable<Item> task = () -> bufferManager.remove();
+        Callable<Item> task = () -> consumerMock.consumeItem();
 
         Future<Item> future = executor.submit(task);
         try {
